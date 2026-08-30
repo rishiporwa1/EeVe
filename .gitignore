@@ -1,0 +1,17 @@
+# Python
+backend/.venv/
+__pycache__/
+*.py[cod]
+
+# JavaScript
+frontend/node_modules/
+frontend/dist/
+
+# Secrets
+.env
+*.env
+
+# Local planning docs from GitHub
+MIVI_MASTER_DEVELOPMENT_PLAN.md
+MIVI_MVP_BUILD_PLAN.md
+MIVI_PROJECT_PROGRESS_REPORT.md
