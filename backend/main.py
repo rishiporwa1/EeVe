@@ -103,3 +103,70 @@ def run_python(request: RunRequest) -> RunResult:
     return run_command(request, workspace)
 
 
+# --- Static SPA Hosting & Single-EXE Bundle Support ---
+import os
+import sys
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from dotenv import load_dotenv
+
+def get_bundle_dir() -> Path:
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent
+
+# Ensure .env is loaded from exe directory or project directory
+if getattr(sys, "frozen", False):
+    exe_dir = Path(sys.executable).resolve().parent
+    load_dotenv(exe_dir / ".env")
+load_dotenv()
+
+bundle_dir = get_bundle_dir()
+possible_dist_dirs = [
+    bundle_dir / "frontend_dist",
+    bundle_dir / "dist",
+    bundle_dir.parent / "frontend" / "dist",
+]
+
+frontend_dist_path: Path | None = None
+for d in possible_dist_dirs:
+    if d.is_dir() and (d / "index.html").is_file():
+        frontend_dist_path = d
+        break
+
+if frontend_dist_path:
+    assets_path = frontend_dist_path / "assets"
+    if assets_path.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api/") or full_path in {"health", "workspace", "files", "agent/run", "patches/apply", "run"}:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        target = frontend_dist_path / full_path
+        if full_path and target.is_file():
+            return FileResponse(str(target))
+        return FileResponse(str(frontend_dist_path / "index.html"))
+
+
+if __name__ == "__main__":
+    import threading
+    import time
+    import webbrowser
+    import uvicorn
+
+    port = 8000
+    host = "127.0.0.1"
+
+    def open_browser():
+        time.sleep(1.2)
+        webbrowser.open(f"http://{host}:{port}")
+
+    threading.Thread(target=open_browser, daemon=True).start()
+    print(f"Starting EeVe on http://{host}:{port}...")
+    uvicorn.run(app, host=host, port=port)
+
+

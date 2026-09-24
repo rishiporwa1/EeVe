@@ -11,7 +11,7 @@ type PatchStatus = 'pending' | 'applying' | 'applied' | 'rejected' | 'failed'
 type PatchWithStatus = PatchProposal & { status: PatchStatus; failMessage?: string }
 type RunResult = { command_display: string; stdout: string; stderr: string; exit_code: number; timed_out: boolean }
 
-const API_BASE_URL = 'http://127.0.0.1:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (window.location.port === '5173' ? 'http://127.0.0.1:8000' : '')
 
 async function getErrorMessage(response: Response) {
   const data: { detail?: string } = await response.json().catch(() => ({}))
