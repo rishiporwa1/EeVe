@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from agent.schemas import AgentResult
 from agent.service import AgentService
+from api.browse import open_folder_dialog
 from api.patches import ApplyPatchRequest, ApplyPatchResponse, apply_patch
 from api.runner import RunRequest, RunResult, run_command
 from services.llm import CohereCompatibleLLM, LLMConfigurationError
@@ -48,6 +49,13 @@ class AgentRunRequest(BaseModel):
 def health_check() -> dict[str, str]:
     """Return a small response proving that the Mivi backend is available."""
     return {"status": "ok", "message": "Mivi backend is running"}
+
+
+@app.post("/workspace/browse")
+def browse_folder() -> dict[str, str]:
+    """Open a native OS folder dialog on the host PC and return the chosen path."""
+    chosen_path = open_folder_dialog()
+    return {"path": chosen_path}
 
 
 @app.post("/workspace")
@@ -142,7 +150,7 @@ if frontend_dist_path:
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
-        if full_path.startswith("api/") or full_path in {"health", "workspace", "files", "agent/run", "patches/apply", "run"}:
+        if full_path.startswith("api/") or full_path in {"health", "workspace", "workspace/browse", "files", "agent/run", "patches/apply", "run"}:
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="API endpoint not found")
         
